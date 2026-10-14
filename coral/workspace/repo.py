@@ -29,6 +29,27 @@ def _clean_env() -> dict[str, str]:
     return env
 
 
+def _set_gateway_base_url(
+    env: dict[str, str],
+    env_var: str,
+    gateway_url: str,
+    *,
+    context: str,
+    inherited_env: dict[str, str] | None = None,
+) -> None:
+    """Set a gateway URL and warn when it replaces a different inherited value."""
+    source_env = env if inherited_env is None else inherited_env
+    previous_url = source_env.get(env_var)
+    if previous_url and previous_url != gateway_url:
+        logger.warning(
+            "%s: configured gateway overrides a pre-existing %s environment variable "
+            "(inherited value redacted)",
+            context,
+            env_var,
+        )
+    env[env_var] = gateway_url
+
+
 def _pin_hooks_path(dest: Path) -> None:
     """Point the run repo's core.hooksPath at its own (empty) hooks dir.
 

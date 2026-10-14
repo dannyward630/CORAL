@@ -67,9 +67,12 @@ def test_runtime_conventions() -> None:
 
 
 def test_start_builds_headless_command_and_environment(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setattr(subprocess, "Popen", _FakePopen)
+    inherited_url = "https://inherited.example/v1"
+    gateway_url = "https://gateway.example/v1"
+    monkeypatch.setenv("DEEPSEEK_BASE_URL", inherited_url)
     worktree = _make_worktree(tmp_path)
 
     handle = DeepSeekHarnessRuntime().start(
@@ -77,7 +80,7 @@ def test_start_builds_headless_command_and_environment(
         coral_md_path=worktree / "AGENTS.md",
         log_dir=tmp_path / "logs",
         prompt="solve this",
-        gateway_url="https://gateway.example/v1",
+        gateway_url=gateway_url,
         gateway_api_key="secret",
     )
 
@@ -97,8 +100,12 @@ def test_start_builds_headless_command_and_environment(
     assert call["kwargs"]["cwd"] == str(worktree)
     env = call["kwargs"]["env"]
     assert env["DSH_HOME"] == str(worktree / ".dsh")
-    assert env["DEEPSEEK_BASE_URL"] == "https://gateway.example/v1"
+    assert env["DEEPSEEK_BASE_URL"] == gateway_url
     assert env["DEEPSEEK_API_KEY"] == "secret"
+    assert "DeepSeek agent agent-1" in caplog.text
+    assert "DEEPSEEK_BASE_URL" in caplog.text
+    assert inherited_url not in caplog.text
+    assert gateway_url not in caplog.text
 
 
 def test_start_honors_runtime_options(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

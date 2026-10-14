@@ -1,6 +1,7 @@
 """Tests for eval implementation and Claude Code settings."""
 
 import json
+import logging
 import subprocess
 import sys
 import tempfile
@@ -443,6 +444,48 @@ def test_setup_claude_settings_permissions():
         # to "default" in headless -p mode, so the runtime sets the mode via
         # the --permission-mode CLI flag instead (see claude_code.py).
         assert "defaultMode" not in settings["permissions"]
+
+
+@pytest.mark.parametrize(
+    ("inherited_url", "should_warn"),
+    [
+        (None, False),
+        ("https://gateway.example/v1", False),
+        ("https://inherited.example/v1", True),
+    ],
+    ids=["absent", "matching", "conflicting"],
+)
+def test_setup_claude_settings_warns_only_when_gateway_replaces_inherited_url(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    inherited_url: str | None,
+    should_warn: bool,
+) -> None:
+    gateway_url = "https://gateway.example/v1"
+    if inherited_url is None:
+        monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+    else:
+        monkeypatch.setenv("ANTHROPIC_BASE_URL", inherited_url)
+    worktree = tmp_path / "worktree"
+    worktree.mkdir()
+    coral_dir = tmp_path / ".coral"
+    (coral_dir / "private").mkdir(parents=True)
+    (coral_dir / "public").mkdir(parents=True)
+
+    with caplog.at_level(logging.WARNING, logger="coral.workspace.repo"):
+        setup_claude_settings(worktree, coral_dir, gateway_url=gateway_url)
+
+    settings = json.loads((worktree / ".claude" / "settings.local.json").read_text())
+    assert settings["env"]["ANTHROPIC_BASE_URL"] == gateway_url
+    if should_warn:
+        assert "Claude Code settings" in caplog.text
+        assert "ANTHROPIC_BASE_URL" in caplog.text
+        assert "overrides a pre-existing" in caplog.text
+        assert inherited_url not in caplog.text
+        assert gateway_url not in caplog.text
+    else:
+        assert not caplog.records
 
 
 def test_setup_claude_settings_no_research():

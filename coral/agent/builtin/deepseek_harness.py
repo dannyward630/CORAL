@@ -22,7 +22,7 @@ from coral.agent.runtime import (
 )
 from coral.sandbox.protocol import AgentSandboxSpec
 from coral.venv_paths import venv_bin_dir
-from coral.workspace.repo import _clean_env
+from coral.workspace.repo import _clean_env, _set_gateway_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +154,12 @@ class DeepSeekHarnessRuntime:
         if tools_mode:
             agent_env["DSH_TOOLS_MODE"] = str(tools_mode)
         if gateway_url:
-            agent_env["DEEPSEEK_BASE_URL"] = gateway_url
+            _set_gateway_base_url(
+                agent_env,
+                "DEEPSEEK_BASE_URL",
+                gateway_url,
+                context=f"DeepSeek agent {agent_id}",
+            )
         if gateway_api_key:
             agent_env["DEEPSEEK_API_KEY"] = gateway_api_key
 

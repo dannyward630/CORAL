@@ -22,7 +22,7 @@ from coral.agent.runtime import (
 )
 from coral.sandbox.protocol import AgentSandboxSpec
 from coral.venv_paths import venv_bin_dir
-from coral.workspace.repo import _clean_env
+from coral.workspace.repo import _clean_env, _set_gateway_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +162,12 @@ class OpenCodeRuntime:
 
         # Route through gateway if configured
         if gateway_url:
-            agent_env["OPENAI_BASE_URL"] = gateway_url
+            _set_gateway_base_url(
+                agent_env,
+                "OPENAI_BASE_URL",
+                gateway_url,
+                context=f"OpenCode agent {agent_id}",
+            )
             logger.info(f"OpenCode agent {agent_id}: routing via gateway at {gateway_url}")
         if gateway_api_key:
             agent_env["OPENAI_API_KEY"] = gateway_api_key

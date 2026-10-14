@@ -17,7 +17,7 @@ from coral.agent.exit_classifier import classify_by_uptime
 from coral.agent.process import open_agent_stderr_for_log_dir
 from coral.agent.runtime import AgentHandle, apply_run_as_user, write_coral_log_entry
 from coral.venv_paths import venv_bin_dir
-from coral.workspace.repo import _clean_env
+from coral.workspace.repo import _clean_env, _set_gateway_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,12 @@ class PiAgentRuntime:
         agent_env["PATH"] = venv_bin + os.pathsep + agent_env.get("PATH", "")
 
         if gateway_url:
-            agent_env["OPENAI_BASE_URL"] = gateway_url
+            _set_gateway_base_url(
+                agent_env,
+                "OPENAI_BASE_URL",
+                gateway_url,
+                context=f"Pi agent {agent_id}",
+            )
             logger.info(f"Pi agent {agent_id}: routing via gateway at {gateway_url}")
         if gateway_api_key:
             agent_env["OPENAI_API_KEY"] = gateway_api_key

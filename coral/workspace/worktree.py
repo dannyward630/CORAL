@@ -12,6 +12,7 @@ from pathlib import Path
 from coral.venv_paths import venv_python as resolve_venv_python
 from coral.workspace.repo import (
     _clean_env,
+    _set_gateway_base_url,
     run_setup_commands,
 )
 
@@ -518,7 +519,13 @@ def setup_claude_settings(
     if gateway_url or gateway_api_key:
         env: dict[str, str] = {}
         if gateway_url:
-            env["ANTHROPIC_BASE_URL"] = gateway_url
+            _set_gateway_base_url(
+                env,
+                "ANTHROPIC_BASE_URL",
+                gateway_url,
+                context="Claude Code settings",
+                inherited_env=_clean_env(),
+            )
         if gateway_api_key:
             env["ANTHROPIC_API_KEY"] = gateway_api_key
         # Clear custom headers so the agent doesn't send them to the
